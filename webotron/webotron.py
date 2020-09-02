@@ -19,10 +19,13 @@ s3 = session.resource('s3')
 # Creating new s3 bucket with random name:
 s3.create_bucket(
     Bucket = bucket_name,
+    # CreateBucketConfiguration={
+    #     'LocationConstraint': session.region_name
+    # },
 )
 
 # Upload an object to new bucket:
-s3.Bucket(bucket_name).upload_file('Configuring_env.txt', 'config.txt')
+s3.Bucket(bucket_name).upload_file('index.html', 'index.html')
 
 # List all buckets
 for bucket in s3.buckets.all():
@@ -31,3 +34,19 @@ for bucket in s3.buckets.all():
 # List all Objects in a newly created Bucket:
 for object in s3.Bucket(bucket_name).objects.all():
     print('New bucket contains following ojects: \n',object)
+
+policy = f""" 
+{{
+  "Version":"2012-10-17",
+  "Statement":[
+    {{
+      "Sid":"PublicRead",
+      "Effect":"Allow",
+      "Principal": "*",
+      "Action":["s3:GetObject","s3:GetObjectVersion"],
+      "Resource":["arn:aws:s3:::{bucket_name}/*"]
+    }}
+  ]
+}}
+"""
+print(policy)
