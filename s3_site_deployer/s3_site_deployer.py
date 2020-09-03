@@ -1,13 +1,28 @@
-import boto3
+#!/usr/bin/python
+
+"""Site Deployer: Deploy websites with aws.
+Webotron automates the process of deploying static websites to AWS.
+- Configure AWS S3 buckets
+  - Create them
+  - Set them up for static website hosting
+  - Deploy local files to them
+- Configure DNS with AWS Route 53
+- Configure a Content Delivery Network and SSL with AWS CloudFront
+"""
 from pathlib import Path 
+import mimetypes 
 import string
 import random
+import boto3
 from botocore.exceptions import ClientError
+
+
 
 def generate_string():
     letters = string.ascii_lowercase
     join_letters = ''.join(random.choice(letters) for i in range(15))
     return 'aws-python-' + join_letters
+
 
 # defining s3 object
 s3 = None
@@ -15,11 +30,14 @@ s3 = None
 bucket_name = generate_string() 
 print("will create bucket with name: \n",bucket_name)
 
+
 # Connecting to AWS account named "default" using boto3 library
 session = boto3.Session(profile_name='default')
 
+
 # Connecting to resource : "s3"
 s3 = session.resource('s3')
+
 
 # Creating new s3 bucket with random name:
 # If creation of new bucket failed throw an error.
@@ -31,22 +49,27 @@ except ClientError as err:
     print(err)
 
 def upload_to_s3(s3_bucket, path, key):
+    content_type = mimetypes.guess_type(key)[0] or 'text/plain'
     s3_bucket.upload_file(
         path,
         key,
-        ExtraArgs={'ContentType':'text/html'}
+        ExtraArgs={ 
+            'ContentType': content_type 
+        }
     )
 
 def sync(pathname):
-    "Sync content of provided PATHNAME to BUCKET"
+    "Sync content of provided PATHNAME to BUCKET."
     s3_bucket = s3.Bucket(bucket_name)
 
     # Creating Universal(Win and Unix) path to website files that we need to upload.
     root = Path(pathname).expanduser().resolve()
+
     def handle_directory(website_dir):
         for item in website_dir.iterdir():
             if item.is_dir(): handle_directory(item)
-            if item.is_file(): upload_to_s3(s3_bucket, str(item), str(item.relative_to(root) ) )
+            # If file, upload it to s3 using full path
+            if item.is_file(): upload_to_s3(s3_bucket, str(item), str(item.relative_to(root).as_posix() ) )
     handle_directory(root)
 sync('sample_site')
 
