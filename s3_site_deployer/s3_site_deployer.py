@@ -1,4 +1,5 @@
 import boto3
+from pathlib import Path 
 import string
 import random
 from botocore.exceptions import ClientError
@@ -29,9 +30,29 @@ try:
 except ClientError as err:
     print(err)
 
+def upload_to_s3(s3_bucket, path, key):
+    s3_bucket.upload_file(
+        path,
+        key,
+        ExtraArgs={'ContentType':'text/html'}
+    )
+
+def sync(pathname):
+    "Sync content of provided PATHNAME to BUCKET"
+    s3_bucket = s3.Bucket(bucket_name)
+
+    # Creating Universal(Win and Unix) path to website files that we need to upload.
+    root = Path(pathname).expanduser().resolve()
+    def handle_directory(website_dir):
+        for item in website_dir.iterdir():
+            if item.is_dir(): handle_directory(item)
+            if item.is_file(): upload_to_s3(s3_bucket, str(item), str(item.relative_to(root) ) )
+    handle_directory(root)
+sync('sample_site')
+
 # Upload an object to new bucket:
-s3.Bucket(bucket_name).upload_file('index.html', 'index.html',ExtraArgs={'ContentType':'text/html'})
-s3.Bucket(bucket_name).upload_file('index.html', '404.html',ExtraArgs={'ContentType':'text/html'})
+s3.Bucket(bucket_name).upload_file('sample_site/index.html', 'index.html',ExtraArgs={'ContentType':'text/html'})
+s3.Bucket(bucket_name).upload_file('sample_site/404.html', '404.html',ExtraArgs={'ContentType':'text/html'})
 # List all buckets
 for bucket in s3.buckets.all():
     print(bucket)
