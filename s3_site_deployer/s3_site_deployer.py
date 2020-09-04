@@ -15,7 +15,7 @@ import string
 import random
 import boto3
 from botocore.exceptions import ClientError
-
+from bucket import BucketManager
 
 
 def generate_string():
@@ -37,7 +37,7 @@ session = boto3.Session(profile_name='default')
 
 # Connecting to resource : "s3"
 s3 = session.resource('s3')
-
+# bucket_manager = BucketManager(session)
 
 # Creating new s3 bucket with random name:
 # If creation of new bucket failed throw an error.
